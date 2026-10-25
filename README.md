@@ -1,120 +1,127 @@
 # create-ui-kit
 
-A Claude Code skill that turns approved Figma mockups into an organised, editable UI Kit in the same Figma file — through the official Figma MCP server.
+Skill для Claude Code, который превращает утверждённые макеты Figma в упорядоченный редактируемый UI Kit в том же файле. Работает через официальный Figma MCP-сервер.
 
-> **Status: v0.1.0, experimental.** The audit and QA scripts pass their offline test suite, and the skill has been run read-only (preflight and audit) on a real Figma file. The full automated cycle — build, QA and corrections — has **not** been tested end to end yet. Save a Figma version before letting it write, and review every gate.
+> **Статус: v0.1.0, экспериментальная версия.** Скрипты аудита и QA проходят офлайн-тесты. На реальном файле Figma Skill запускался только в режиме чтения: предпроверка и аудит. Полный автоматический цикл — сборка, QA и правки — от начала до конца **ещё не тестировался**. Прежде чем разрешить Skill запись, сохраните версию файла в Figma и внимательно проверяйте результат на каждой контрольной точке.
 
-## What it does
+## Что делает Skill
 
-The skill rebuilds what the mockups already show; it does not redesign. Anything the mockups do not show is proposed as a numbered decision for you to approve.
+Skill воспроизводит то, что уже есть в макетах, и не занимается редизайном. Всё, чего в макетах нет, он предлагает в виде пронумерованных решений — их утверждаете вы.
 
-- **Audit** — reads the source frames by node id and extracts colors, typography, fonts, radii, spacing, component candidates and Desktop/Tablet/Mobile groupings, marking each item as FACT, INFERENCE or PROPOSAL.
-- **Architecture** — plans Variables (color, sizes with breakpoint modes), Text Styles, components with variants, states and breakpoints, patterns, and page structure.
-- **Build** — creates Foundations and component sets via `use_figma`. Every writing script starts with a guard (fileKey, target page, fonts) and stops before its first change if the guard fails.
-- **QA** — runs a read-only structural scan (`scripts/qa.js`): broken instances, unbound properties, literal colors, text styles and trim, mode pinning, clipping, sizes against the sources, documentation layout.
-- **Documentation** — writes component sheets, descriptions, and a developer `handoff.md`.
-- **Resumable state** — `ui-kit/ledger.json` in your working directory records every created id and decision, so any session can resume or undo by id.
+- **Аудит** — читает исходные фреймы по ID узлов и собирает цвета, типографику, шрифты, скругления, отступы, кандидатов в компоненты и группы экранов Desktop / Tablet / Mobile. Каждый пункт помечается как FACT (считано из файла), INFERENCE (трактовка) или PROPOSAL (предложение).
+- **Архитектура** — планирует Variables (цвета и размеры с режимами по брейкпоинтам), Text Styles, компоненты с вариантами, состояниями и брейкпоинтами, паттерны и структуру страницы.
+- **Сборка** — создаёт Foundations и наборы компонентов через `use_figma`. Каждый записывающий скрипт начинается с проверки: fileKey, целевая страница, шрифты. Если проверка не пройдена, скрипт останавливается до первого изменения.
+- **QA** — выполняет структурную проверку в режиме чтения (`scripts/qa.js`): битые инстансы, непривязанные свойства, цвета без Variables, текстовые стили и trim, закрепление режимов, обрезанный текст, размеры в сравнении с макетами, раскладка документации.
+- **Документация** — оформляет листы компонентов, описания и `handoff.md` для разработчика.
+- **Возобновление работы** — `ui-kit/ledger.json` в рабочей папке хранит ID всех созданных узлов и все решения. Любая сессия может продолжить работу с того же места или откатить шаг по ID.
 
-## Three checkpoints
+## Три контрольные точки
 
-The skill works on its own between gates and stops at each one for your answer.
+Между контрольными точками Skill работает самостоятельно, а на каждой останавливается и ждёт вашего ответа.
 
-| Gate | When | You |
+| Точка | Когда | Что делаете вы |
 |---|---|---|
-| **G1 · Brief** | after preflight | confirm source pages, target page, fonts, scope |
-| **G2 · Plan** | after audit and design, before any write to the library | reply `ок` to accept every ★ recommendation, or override by number |
-| **G3 · Acceptance** | after build and QA | review in Figma, send corrections, or reply `принято` |
+| **G1 · Бриф** | после предпроверки | подтверждаете исходные страницы, целевую страницу, шрифты и объём работ |
+| **G2 · План** | после аудита и проектирования, до любой записи в библиотеку | отвечаете `ок`, чтобы принять все рекомендации ★, или меняете решения по номерам |
+| **G3 · Приёмка** | после сборки и QA | проверяете результат в Figma и присылаете правки или отвечаете `принято` |
 
-The gate messages are written in Russian. The skill tells the agent to use your language, but the templates stay Russian; see Limitations.
+Сообщения на контрольных точках написаны по-русски. Skill отвечает на языке пользователя, но сами шаблоны остаются русскими — см. раздел «Ограничения».
 
-## Requirements
+## Требования
 
 - [Claude Code](https://docs.claude.com/en/docs/claude-code).
-- The official **Figma MCP server** (`https://mcp.figma.com/mcp`), connected and authorised. The easiest way to get it is the official Figma plugin for Claude Code.
-- The Figma skills `figma-use`, `figma-generate-library` and `figma-generate-design`, which come with that plugin. This skill loads them; it does not include them.
-- **Edit access** to the Figma file. With view-only access the skill can read but not build.
-- Every font used in the mockups must be available to Figma's servers: in the Figma catalog or uploaded to your Figma account, team or organisation. Fonts installed only on your machine are not visible to the MCP server, and the skill never substitutes fonts.
-- Node.js 18+, only to run the local tests.
+- Официальный **Figma MCP-сервер** (`https://mcp.figma.com/mcp`), подключённый и авторизованный. Проще всего получить его через официальный плагин Figma для Claude Code.
+- Skills Figma `figma-use`, `figma-generate-library` и `figma-generate-design` — они входят в тот же плагин. Этот Skill их загружает, но не содержит.
+- **Права на редактирование** файла Figma. С правами только на просмотр Skill сможет читать файл, но не собирать UI Kit.
+- Все шрифты из макетов должны быть доступны серверам Figma: в каталоге Figma или загружены в ваш аккаунт, команду или организацию. Шрифты, установленные только на вашем компьютере, MCP-сервер не видит, а подменять шрифты Skill не будет.
+- Node.js 18+ — только для запуска локальных тестов.
 
-## Installation
+## Установка
 
 ```bash
 git clone https://github.com/pawell9/create-ui-kit.git ~/.claude/skills/create-ui-kit
 ```
 
-Restart Claude Code, or start a new session. Check that `/create-ui-kit` appears among the slash commands.
+Перезапустите Claude Code или откройте новую сессию. Убедитесь, что в списке slash-команд появилась `/create-ui-kit`.
 
-The skill has `disable-model-invocation: true`, so it runs only when you call it explicitly.
+В Skill указано `disable-model-invocation: true`: он запускается только по вашей явной команде.
 
-## Usage
+## Запуск
 
-Run it from a working directory for this project. The skill creates `ui-kit/` there.
-
-```
-/create-ui-kit https://www.figma.com/design/<fileKey>/<name>?node-id=<id>   # start: preflight → G1
-/create-ui-kit ок                                                             # answer at a gate
-/create-ui-kit 3.1 B, 2: без Hotspot                                          # override decisions at G2
-/create-ui-kit status                                                         # progress from the ledger
-/create-ui-kit                                                                # resume where it stopped
-```
-
-Before the first write, save a version in Figma (File → Save to version history). `use_figma` has no version API, so that saved version is your restore point.
-
-## Safety guardrails
-
-- Source pages are read-only and are read by node id only. Pages you mark as protected, such as backups, are never read.
-- Writes go only to the target page, plus the file-wide Variables and Styles you approved at G2.
-- The skill deletes only nodes it created (recorded in the ledger) or nodes you name in a correction.
-- Publishing the library, Code Connect, creating new files and account changes happen only when you ask for them.
-
-## Repository layout
+Запускайте Skill из рабочей папки проекта — в ней он создаст папку `ui-kit/`.
 
 ```
-SKILL.md                 entry point: phases, gates, guardrails, message templates
-reference/               audit method, architecture, build recipes, QA checklist, documentation, Figma MCP gotchas
-scripts/audit.js         read-only audit script for use_figma
-scripts/qa.js            read-only QA script for use_figma
-scripts/test/            offline tests with a minimal mock of the Figma Plugin API
-templates/ledger.json    initial state file
+/create-ui-kit https://www.figma.com/design/<fileKey>/<name>?node-id=<id>   # старт: предпроверка → G1
+/create-ui-kit ок                                                             # ответ на контрольной точке
+/create-ui-kit 3.1 B, 2: без Hotspot                                          # изменить решения на G2
+/create-ui-kit status                                                         # прогресс по ledger
+/create-ui-kit                                                                # продолжить с места остановки
 ```
 
-## Tests
+Перед первой записью сохраните версию файла в Figma (File → Save to version history). У `use_figma` нет API для истории версий, поэтому сохранённая вами версия — единственная точка возврата.
+
+## Защитные правила
+
+- Исходные страницы только читаются, и только по ID узлов. Страницы, которые вы отметили как защищённые (например, резервные копии), не читаются вообще.
+- Запись идёт только на целевую страницу, а также в Variables и Styles всего файла — в том объёме, который вы утвердили на G2.
+- Skill удаляет только созданные им узлы (они записаны в ledger) или узлы, которые вы явно назвали в правках.
+- Публикация библиотеки, Code Connect, создание новых файлов и изменения в аккаунте — только по вашему запросу.
+
+## Структура репозитория
+
+```
+SKILL.md                 точка входа: фазы, контрольные точки, правила, шаблоны сообщений
+reference/               метод аудита, архитектура, рецепты сборки, чек-лист QA, документация, особенности Figma MCP
+scripts/audit.js         скрипт аудита для use_figma, только чтение
+scripts/qa.js            скрипт QA для use_figma, только чтение
+scripts/test/            офлайн-тесты с минимальной заглушкой Figma Plugin API
+templates/ledger.json    начальный файл состояния
+```
+
+## Тесты
 
 ```bash
 cd ~/.claude/skills/create-ui-kit
 node scripts/test/run-tests.mjs
 ```
 
-The tests run without Figma. They check that `audit.js` and `qa.js` contain no mutating Plugin API calls, that their guards work (fileKey, forbidden pages), that the audit groups and aggregates correctly, that output stays within the size budget, and that QA detects its defect codes on a seeded scene. They do not exercise the build phase.
+Тесты работают без Figma. Они проверяют, что:
+- в `audit.js` и `qa.js` нет вызовов Plugin API, изменяющих файл;
+- срабатывают защитные проверки (fileKey, запрещённые страницы);
+- аудит правильно группирует и агрегирует данные;
+- объём ответа укладывается в лимит;
+- QA находит все свои коды дефектов на подготовленной тестовой сцене.
 
-## Limitations and testing status
+Фазу сборки тесты не проверяют.
 
-| Area | Status |
+## Ограничения и статус тестирования
+
+| Область | Статус |
 |---|---|
-| `audit.js`, `qa.js` — offline tests (40 checks) | passing |
-| Preflight and audit, read-only, on a real Figma file | tested once |
-| Build, QA and corrections on a real file, end to end | **not tested** |
+| `audit.js`, `qa.js` — офлайн-тесты (40 проверок) | проходят |
+| Предпроверка и аудит на реальном файле Figma, только чтение | проверено один раз |
+| Сборка, QA и правки на реальном файле от начала до конца | **не тестировалось** |
 
-Known limitations:
-- Gate message templates are in Russian.
-- Breakpoints default to Desktop ≥ 1200, Tablet ≥ 600, Mobile below that, by frame width. Change them in `PARAMS.breakpoints` of `audit.js` if your mockups differ.
-- Results depend on the Figma MCP server and Plugin API, which change over time; `reference/figma-gotchas.md` reflects their behaviour as of October 2026.
-- Large files need many tool calls, and each call's output is capped at about 15 KB; the audit pages its results.
-- Mockups without auto layout give spacing as measurements; reading them as padding or gap is an inference you confirm at G2.
+Известные ограничения:
+- Шаблоны сообщений на контрольных точках написаны по-русски.
+- Брейкпоинты по умолчанию определяются по ширине фрейма: Desktop ≥ 1200, Tablet ≥ 600, Mobile — всё, что уже. Если в ваших макетах иначе, измените `PARAMS.breakpoints` в `audit.js`.
+- Результат зависит от Figma MCP-сервера и Plugin API, которые со временем меняются. `reference/figma-gotchas.md` описывает их поведение на октябрь 2026 года.
+- Большим файлам нужно много вызовов инструментов, а ответ каждого вызова ограничен примерно 15 КБ. Поэтому аудит отдаёт результаты частями.
+- В макетах без Auto Layout отступы получаются как замеры расстояний. Считать их padding или gap — это трактовка, которую вы подтверждаете на G2.
 
-## Updating
+## Обновление
 
 ```bash
 cd ~/.claude/skills/create-ui-kit
 git pull
 ```
 
-Releases are tagged (`v0.1.0`, …); see [CHANGELOG.md](CHANGELOG.md). To pin a version, run `git checkout v0.1.0`.
+Версии отмечены тегами (`v0.1.0`, …), история изменений — в [CHANGELOG.md](CHANGELOG.md). Чтобы закрепиться на конкретной версии, выполните `git checkout v0.1.0`.
 
-## Feedback
+## Обратная связь
 
-Please open an issue with what you ran, at which phase it failed, and the relevant part of `ui-kit/ledger.json`. Do not include client file links or screenshots you are not allowed to share.
+Создайте issue: опишите, что вы запускали, на какой фазе произошёл сбой, и приложите нужную часть `ui-kit/ledger.json`. Не прикладывайте ссылки на клиентские файлы и скриншоты, которыми вы не вправе делиться.
 
-## License
+## Лицензия
 
-MIT — see [LICENSE](LICENSE).
+MIT — см. [LICENSE](LICENSE).
