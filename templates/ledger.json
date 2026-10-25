@@ -1,0 +1,46 @@
+{
+  "version": 1,
+  "phase": "G1",
+  "updated": "",
+  "figma": {
+    "fileKey": "",
+    "fileName": "",
+    "sourcePageIds": [],
+    "protectedPageIds": [],
+    "targetPageId": ""
+  },
+  "breakpoints": [
+    { "name": "Desktop", "frameWidth": 0, "mode": "" },
+    { "name": "Tablet", "frameWidth": 0, "mode": "" },
+    { "name": "Mobile", "frameWidth": 0, "mode": "" }
+  ],
+  "sources": { "screens": [], "excluded": [] },
+  "fonts": [],
+  "decisions": [],
+  "foundations": {
+    "collections": {},
+    "variables": {},
+    "textStyles": {},
+    "effectStyles": {}
+  },
+  "components": [
+    {
+      "name": "",
+      "status": "planned | built | verified | accepted | blocked",
+      "setId": "",
+      "chapter": "",
+      "sources": { "Desktop": "", "Tablet": "", "Mobile": "" },
+      "expectSizes": {},
+      "variants": 0,
+      "fingerprint": "",
+      "absoluteLayers": [],
+      "notes": ""
+    }
+  ],
+  "docs": { "sections": {}, "sheets": {}, "serviceComponents": {} },
+  "exceptions": { "literalAllow": [], "allowNodeIds": [], "reasons": {} },
+  "temp": [],
+  "qa": { "lastRun": "", "P0": null, "P1": null, "P2": null },
+  "corrections": [],
+  "log": []
+}
